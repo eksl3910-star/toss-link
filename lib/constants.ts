@@ -18,3 +18,6 @@ export const PBKDF2_ITERATIONS = 100_000;
 
 // Admin password env key (checked in order)
 export const ADMIN_PASS_ENVS = ["ADMIN_TOGGLE_PASS", "ADMIN_BASIC_PASS"] as const;
+
+/** Basic 통과 후 RSC 요청 등에 쓰는 관리자 게이트 쿠키 (httpOnly) */
+export const ADMIN_GATE_COOKIE = "als_admin_gate";

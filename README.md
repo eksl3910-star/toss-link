@@ -47,8 +47,10 @@ npx wrangler d1 execute ably-link-db --remote --file=./migrations/0002_users_nic
 | `ADMIN_BASIC_USER` | **`/admin` 페이지**를 브라우저로 열 때 Basic Auth 아이디 (필수·프로덕션) |
 | `ADMIN_BASIC_PASS` | **`/admin` 페이지** Basic Auth 비밀번호 (필수·프로덕션) |
 | `ADMIN_TOGGLE_PASS` | 관리자 화면 **폼**에서 점검·통계 API에 넣는 비밀번호. 없으면 `ADMIN_BASIC_PASS`로 검증 |
+| `ADMIN_GATE_SECRET` | (선택) Basic 통과 후 발급되는 **게이트 쿠키** 서명용 비밀. 없으면 `ADMIN_TOGGLE_PASS` → `ADMIN_BASIC_PASS` → `ADMIN_BASIC_USER:ADMIN_BASIC_PASS` 순으로 사용 |
 
-- **`/admin` HTML**만 미들웨어에서 Basic Auth를 요구합니다. **`/api/admin/*`** 에는 Basic을 걸지 않습니다(페이지 안 `fetch`가 `Authorization`을 붙이지 않아 무한 로그인이 나는 문제 방지). API는 기존처럼 POST body의 `password`로만 검증합니다.
+- **`/admin` HTML**만 미들웨어에서 Basic Auth를 요구합니다. Next.js가 같은 URL로 RSC 요청을 보낼 때 브라우저가 `Authorization`을 안 붙이는 경우가 있어, **Basic 검증에 성공하면 12시간짜리 httpOnly 쿠키(`als_admin_gate`)를 심고**, 이후 `/admin` 요청은 그 쿠키로 통과시켜 **무한 로그인 창을 막습니다.**
+- **`/api/admin/*`** 에는 Basic을 걸지 않습니다. API는 POST body의 `password`로만 검증합니다.
 - 로컬 `next dev`에서는 `ADMIN_BASIC_*` 가 비어 있으면 Basic을 건너뜁니다. 프로덕션(Pages)에서는 둘 다 설정하세요.
 
 ## 배포

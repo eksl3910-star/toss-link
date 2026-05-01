@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getOptionalRequestContext } from "@cloudflare/next-on-pages";
-import { SESSION_COOKIE } from "@/lib/constants";
+import { ADMIN_GATE_COOKIE, SESSION_COOKIE } from "@/lib/constants";
 import { verifyAdminBasicAuthHeader } from "@/lib/admin-basic-auth";
+import { createAdminGateCookie, verifyAdminGateCookie } from "@/lib/admin-gate-cookie";
 import { getMaintenanceOnSafe } from "@/lib/database";
 
 // ── Path classifiers ──────────────────────────────────────────────────────────
@@ -39,6 +40,17 @@ function getAdminBasicCredentials(): { user: string; pass: string } {
   const user = envUser || process.env.ADMIN_BASIC_USER || "";
   const pass = envPass || process.env.ADMIN_BASIC_PASS || "";
   return { user, pass };
+}
+
+function getAdminGateSecret(env: Record<string, unknown> | undefined, basicUser: string, basicPass: string): string {
+  const from = (k: string) =>
+    (typeof env?.[k] === "string" ? (env[k] as string) : "") || process.env[k] || "";
+  return (
+    from("ADMIN_GATE_SECRET").trim() ||
+    from("ADMIN_TOGGLE_PASS").trim() ||
+    from("ADMIN_BASIC_PASS").trim() ||
+    `${basicUser.trim()}:${basicPass.trim()}`
+  );
 }
 
 // ── Middleware ────────────────────────────────────────────────────────────────
@@ -92,11 +104,28 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
         );
       }
       /* 로컬(next dev)에서 env 미설정 시 Basic 생략 — 프로덕션에서는 반드시 설정 */
-    } else if (!verifyAdminBasicAuthHeader(req.headers.get("authorization"), basicUser, basicPass)) {
-      return new NextResponse("Unauthorized", {
-        status: 401,
-        headers: { "WWW-Authenticate": 'Basic realm="ably-admin", charset="UTF-8"' },
-      });
+    } else {
+      const ctxEnv = getOptionalRequestContext()?.env as Record<string, unknown> | undefined;
+      const gateSecret = getAdminGateSecret(ctxEnv, basicUser, basicPass);
+      const gate = req.cookies.get(ADMIN_GATE_COOKIE)?.value;
+      const gateOk = await verifyAdminGateCookie(gate, gateSecret);
+      if (!gateOk) {
+        if (verifyAdminBasicAuthHeader(req.headers.get("authorization"), basicUser, basicPass)) {
+          const res = NextResponse.next();
+          res.cookies.set(ADMIN_GATE_COOKIE, await createAdminGateCookie(gateSecret), {
+            httpOnly: true,
+            secure: true,
+            sameSite: "lax",
+            path: "/admin",
+            maxAge: 12 * 60 * 60,
+          });
+          return res;
+        }
+        return new NextResponse("Unauthorized", {
+          status: 401,
+          headers: { "WWW-Authenticate": 'Basic realm="ably-admin", charset="UTF-8"' },
+        });
+      }
     }
   }
 

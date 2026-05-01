@@ -15,6 +15,8 @@ export function verifyAdminBasicAuthHeader(
   expectedUser: string,
   expectedPass: string
 ): boolean {
+  const eu = expectedUser.trim();
+  const ep = expectedPass.trim();
   if (!authorizationHeader?.startsWith("Basic ")) return false;
   let decoded: string;
   try {
@@ -24,7 +26,7 @@ export function verifyAdminBasicAuthHeader(
     return false;
   }
   const idx = decoded.indexOf(":");
-  const user = idx === -1 ? decoded : decoded.slice(0, idx);
-  const pass = idx === -1 ? "" : decoded.slice(idx + 1);
-  return timingSafeEqualUtf8(user, expectedUser) && timingSafeEqualUtf8(pass, expectedPass);
+  const user = (idx === -1 ? decoded : decoded.slice(0, idx)).trim();
+  const pass = (idx === -1 ? "" : decoded.slice(idx + 1)).trim();
+  return timingSafeEqualUtf8(user, eu) && timingSafeEqualUtf8(pass, ep);
 }
