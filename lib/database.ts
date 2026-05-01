@@ -43,18 +43,41 @@ export type AdminMetrics = {
 
 type D1Env = { DB?: D1Database };
 
-export function getDb(): D1Database {
-  let fromCtx: D1Database | undefined;
-  try {
-    fromCtx = (getRequestContext().env as D1Env).DB;
-  } catch {
-    // 로컬 `next dev` 등 Cloudflare 요청 컨텍스트 밖에서는 무시
+/** D1Database는 보통 prepare + exec 를 가짐 (다른 CF 바인딩과 구분) */
+function isD1Database(v: unknown): v is D1Database {
+  if (typeof v !== "object" || v === null) return false;
+  const o = v as { prepare?: unknown; exec?: unknown };
+  return typeof o.prepare === "function" && typeof o.exec === "function";
+}
+
+/** `DB` 우선, 없으면 env 안의 D1 객체 자동 탐지 (대시보드에서 이름을 다르게 준 경우) */
+function pickD1FromEnv(env: unknown): D1Database | undefined {
+  if (!env || typeof env !== "object") return undefined;
+  const record = env as Record<string, unknown>;
+  if (isD1Database(record.DB)) return record.DB;
+  for (const value of Object.values(record)) {
+    if (isD1Database(value)) return value;
   }
-  const fromGlobal = (globalThis as { DB?: D1Database }).DB;
-  const db = fromCtx ?? fromGlobal;
+  return undefined;
+}
+
+export function getDb(): D1Database {
+  let env: unknown;
+  try {
+    env = getRequestContext().env;
+  } catch {
+    env = undefined;
+  }
+
+  let db = pickD1FromEnv(env);
+  if (!db) {
+    const g = globalThis as unknown as { DB?: unknown };
+    if (isD1Database(g.DB)) db = g.DB;
+  }
+
   if (!db) {
     throw new Error(
-      "D1 바인딩(DB)을 찾을 수 없습니다. Cloudflare Pages에서 D1 연결 이름이 `DB`인지 확인하세요."
+      "D1에 연결되지 않았습니다. Cloudflare 대시보드 → Workers & Pages → 이 프로젝트(ably-link-server) → Settings → Functions → D1 database bindings에서 Variable name을 DB로 추가하고 ably-link-db를 선택하세요. Production·Preview 모두 설정 후 재배포하세요."
     );
   }
   return db;
