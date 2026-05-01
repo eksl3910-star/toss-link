@@ -50,12 +50,13 @@ function isD1Database(v: unknown): v is D1Database {
   return typeof o.prepare === "function" && typeof o.exec === "function";
 }
 
-/** `DB` 우선, 없으면 env 안의 D1 객체 자동 탐지 (대시보드에서 이름을 다르게 준 경우) */
+/** 허용된 바인딩 이름만 조회 (임의 auto-scan 금지) */
 function pickD1FromEnv(env: unknown): D1Database | undefined {
   if (!env || typeof env !== "object") return undefined;
   const record = env as Record<string, unknown>;
-  if (isD1Database(record.DB)) return record.DB;
-  for (const value of Object.values(record)) {
+  const candidates = ["DB", "D1_DB", "DATABASE", "D1"];
+  for (const key of candidates) {
+    const value = record[key];
     if (isD1Database(value)) return value;
   }
   return undefined;
@@ -77,7 +78,7 @@ export function getDb(): D1Database {
 
   if (!db) {
     throw new Error(
-      "D1에 연결되지 않았습니다. Cloudflare 대시보드 → Workers & Pages → 이 프로젝트(ably-link-server) → Settings → Functions → D1 database bindings에서 Variable name을 DB로 추가하고 ably-link-db를 선택하세요. Production·Preview 모두 설정 후 재배포하세요."
+      "D1 binding을 찾지 못했거나 잘못된 바인딩을 참조했습니다. Cloudflare 대시보드에서 D1 binding 이름을 `DB`로 설정하고(Functions → D1 database bindings), ably-link-db를 연결한 뒤 재배포하세요."
     );
   }
   return db;
