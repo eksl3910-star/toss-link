@@ -781,18 +781,18 @@ export default function HomePage() {
 
   return (
     <>
-      <div className="min-h-screen bg-[#f5f5f7]">
+      <div className="flex min-h-screen flex-col bg-[#f5f5f7]">
         <div
           className={
             isDesktopLayout
-              ? "max-w-3xl lg:max-w-5xl mx-auto pb-10"
-              : "max-w-[480px] mx-auto pb-10"
+              ? "flex w-full flex-1 flex-col"
+              : "mx-auto flex w-full max-w-[480px] flex-1 flex-col"
           }
         >
           {/* Top bar */}
           <header
-            className={`sticky top-0 z-10 flex items-center justify-between border-b border-[#e8e8e8] bg-white py-4 ${
-              isDesktopLayout ? "px-5 sm:px-8" : "px-5"
+            className={`sticky top-0 z-10 flex items-center justify-between border-b border-[#e8e8e8] bg-white/95 py-4 shadow-[0_1px_0_rgba(0,0,0,0.04)] backdrop-blur-md ${
+              isDesktopLayout ? "px-6 lg:px-12 xl:px-20 2xl:px-24" : "px-5"
             }`}
           >
             <h1
@@ -874,18 +874,25 @@ export default function HomePage() {
 
           <div
             className={
-              useTwoColumn
-                ? "grid grid-cols-2 gap-6 px-4 pt-4 sm:px-6 sm:pt-6"
-                : isDesktopLayout
-                  ? "flex flex-col space-y-4 px-6 pt-6"
-                  : "flex flex-col space-y-3 px-4 pt-4"
+              isDesktopLayout
+                ? "flex flex-1 flex-col px-6 pb-8 pt-5 lg:px-12 lg:pt-6 xl:px-20 2xl:px-24"
+                : "flex flex-1 flex-col px-4 pt-4"
             }
           >
+            <div
+              className={
+                useTwoColumn
+                  ? "grid flex-1 grid-cols-2 gap-6 lg:gap-8 xl:gap-10"
+                  : isDesktopLayout
+                    ? "flex flex-1 flex-col space-y-5"
+                    : "flex flex-1 flex-col space-y-3"
+              }
+            >
             <div className={useTwoColumn ? "flex flex-col gap-6" : "contents"}>
               {/* Stats */}
               <button
                 onClick={loadStats}
-                className={`w-full bg-white rounded-2xl border border-[#ececec] flex items-center justify-center gap-2 active:bg-gray-50 ${
+                className={`w-full rounded-2xl border border-[#ececec] bg-white flex items-center justify-center gap-2 shadow-sm transition-shadow hover:shadow-md active:bg-gray-50 ${
                   isDesktopLayout ? "p-5 lg:p-6" : "p-4"
                 }`}
               >
@@ -902,7 +909,7 @@ export default function HomePage() {
 
               {/* Upload card */}
               <div
-                className={`bg-white rounded-2xl border border-[#ececec] ${
+                className={`rounded-2xl border border-[#ececec] bg-white shadow-sm transition-shadow hover:shadow-md ${
                   isDesktopLayout ? "p-5 lg:p-6" : "p-4"
                 }`}
               >
@@ -982,7 +989,7 @@ export default function HomePage() {
               {/* Claimed link display */}
               {claimedLink && (
                 <div
-                  className={`bg-white rounded-2xl border-2 border-[#ff5a5f] ${
+                  className={`rounded-2xl border-2 border-[#ff5a5f] bg-white shadow-md ${
                     isDesktopLayout ? "p-6" : "p-5"
                   }`}
                 >
@@ -1027,13 +1034,16 @@ export default function HomePage() {
               )}
             </div>
           </div>
+          </div>
 
           <div
-            className={`mt-6 border-t border-[#e8e8e8] py-5 ${
-              isDesktopLayout ? "px-6" : "px-4"
+            className={`mt-auto border-t border-[#e5e5e5] bg-[#f0f0f3]/90 py-8 backdrop-blur-sm ${
+              isDesktopLayout
+                ? "px-6 pb-10 pt-14 lg:px-12 lg:pb-12 lg:pt-16 xl:px-20 2xl:px-24"
+                : "px-4 pb-10 pt-14"
             }`}
           >
-            <p className="text-center text-[10px] font-medium text-gray-400 mb-2.5">
+            <p className="mb-3 text-center text-[10px] font-semibold uppercase tracking-wider text-gray-400">
               화면 레이아웃
             </p>
             <div className="flex flex-wrap items-center justify-center gap-2">
