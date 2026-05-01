@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { resolveUser } from "@/lib/session";
-import { getSettings, parseAblyUrl, isDuplicateLink, enqueueLink } from "@/lib/database";
+import { getSettings, parseTossLinkUrl, isDuplicateLink, enqueueLink } from "@/lib/database";
 
 export const runtime = "edge";
 
@@ -23,11 +23,11 @@ export async function POST(req: Request) {
   }
 
   const text = typeof body.text === "string" ? body.text : "";
-  const url = parseAblyUrl(text);
+  const url = parseTossLinkUrl(text);
 
   if (!url) {
     return NextResponse.json(
-      { error: "에이블리 링크(a-bly.com)만 올릴 수 있어요." },
+      { error: "토스 링크(a-bly.com)만 올릴 수 있어요." },
       { status: 400 }
     );
   }

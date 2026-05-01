@@ -137,7 +137,7 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
         }
         return new NextResponse("Unauthorized", {
           status: 401,
-          headers: { "WWW-Authenticate": 'Basic realm="ably-admin", charset="UTF-8"' },
+          headers: { "WWW-Authenticate": 'Basic realm="toss-admin", charset="UTF-8"' },
         });
       }
     }

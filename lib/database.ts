@@ -1,5 +1,5 @@
 import { getRequestContext, getOptionalRequestContext } from "@cloudflare/next-on-pages";
-import { SESSION_TTL_MS, CLAIM_WINDOW_MS, ABLY_HOSTNAME } from "@/lib/constants";
+import { SESSION_TTL_MS, CLAIM_WINDOW_MS, TOSS_LINK_HOSTNAME } from "@/lib/constants";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -78,7 +78,7 @@ export function getDb(): D1Database {
 
   if (!db) {
     throw new Error(
-      "D1 binding을 찾지 못했거나 잘못된 바인딩을 참조했습니다. Cloudflare 대시보드에서 D1 binding 이름을 `DB`로 설정하고(Functions → D1 database bindings), ably-link-db를 연결한 뒤 재배포하세요."
+      "D1 binding을 찾지 못했거나 잘못된 바인딩을 참조했습니다. Cloudflare 대시보드에서 D1 binding 이름을 `DB`로 설정하고(Functions → D1 database bindings), toss-link-db를 연결한 뒤 재배포하세요."
     );
   }
   return db;
@@ -434,13 +434,13 @@ export async function deleteAnnouncement(id: string): Promise<{ ok: boolean }> {
 
 // ── Link helpers ──────────────────────────────────────────────────────────────
 
-export function parseAblyUrl(raw: string): string | null {
+export function parseTossLinkUrl(raw: string): string | null {
   const text = raw.trim();
   const match = text.match(/https?:\/\/[^\s]+/i);
   if (!match) return null;
   try {
     const url = new URL(match[0]);
-    if (!url.hostname.toLowerCase().endsWith(ABLY_HOSTNAME)) return null;
+    if (!url.hostname.toLowerCase().endsWith(TOSS_LINK_HOSTNAME)) return null;
     return url.toString();
   } catch {
     return null;

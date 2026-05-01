@@ -1,12 +1,12 @@
 {
-  "name": "ably-link-server",
+  "name": "toss-link",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "pages:build": "npx @cloudflare/next-on-pages",
-    "deploy": "pnpm pages:build && npx wrangler pages deploy .vercel/output/static --project-name ably-link-server",
+    "deploy": "pnpm pages:build && npx wrangler pages deploy .vercel/output/static --project-name toss-link",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"

@@ -1,6 +1,6 @@
-# ably-link-server
+# toss-link
 
-에이블리 링크 교환 서비스 — Next.js 15 + Cloudflare Pages + D1
+토스 링크 교환 서비스 — Next.js 15 + Cloudflare Pages + D1
 
 ## 로컬 개발
 
@@ -15,11 +15,11 @@ pnpm dev
 
 GitHub Actions로 배포해도 **`wrangler.toml`만으로는 Pages 런타임에 D1이 붙지 않습니다.** 대시보드에서 꼭 연결하세요.
 
-1. [Cloudflare Dashboard](https://dash.cloudflare.com) → **Workers & Pages** → 프로젝트 **`ably-link-server`**
+1. [Cloudflare Dashboard](https://dash.cloudflare.com) → **Workers & Pages** → 프로젝트 **`toss-link`**
 2. **Settings** → **Functions** → **D1 database bindings**
 3. **Add binding**
    - **Variable name**: `DB` ← 코드와 반드시 동일
-   - **D1 database**: `ably-link-db` (또는 사용 중인 DB)
+   - **D1 database**: `toss-link-db` (또는 사용 중인 DB)
 4. **Production**과 **Preview** 탭(또는 환경) **둘 다** 같은 바인딩이 있는지 확인
 5. 저장 후 **재배포** (빈 커밋 push 또는 Actions 다시 실행)
 
@@ -30,9 +30,9 @@ GitHub Actions로 배포해도 **`wrangler.toml`만으로는 Pages 런타임에 
 3. 마이그레이션 실행:
 
 ```bash
-npx wrangler d1 execute ably-link-db --local --file=./migrations/0001_schema.sql
+npx wrangler d1 execute toss-link-db --local --file=./migrations/0001_schema.sql
 # 기존 DB에 `users.email` 컬럼이 있으면 닉네임 컬럼으로 이름만 변경:
-npx wrangler d1 execute ably-link-db --remote --file=./migrations/0002_users_nickname.sql
+npx wrangler d1 execute toss-link-db --remote --file=./migrations/0002_users_nickname.sql
 ```
 
 회원가입·로그인은 **이메일이 아니라 닉네임**(영어·한글·숫자, 2~20자)으로 합니다.

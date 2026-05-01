@@ -1,5 +1,5 @@
 -- ====================================================
--- ably-link-server  |  migration 0001 — initial schema
+-- toss-link  |  migration 0001 — initial schema
 -- ====================================================
 
 -- Global configuration (single row, key='global')

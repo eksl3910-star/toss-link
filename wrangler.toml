@@ -1,8 +1,8 @@
-﻿name = "ably-link-server"
+﻿name = "toss-link"
 pages_build_output_dir = ".vercel/output/static"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "ably-link-db"
-database_id = "652de95e-00c3-4d3a-9f21-98487c977bb2"
+database_name = "toss-link-db"
+database_id = "d5f7e386-168f-4ce3-a2d1-8973a79f8f7f"
 

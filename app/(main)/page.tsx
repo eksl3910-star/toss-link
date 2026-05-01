@@ -197,8 +197,8 @@ function GuidePopup({
         {[
           {
             n: 1,
-            title: "에이블리에서 내 링크 복사하기",
-            desc: "에이블리 앱에서 이벤트 링크를 새로 만들고 복사해요. 카카오톡으로 받은 메시지 전체를 복사해도 돼요!",
+            title: "토스에서 내 링크 복사하기",
+            desc: "토스 앱에서 이벤트 링크를 새로 만들고 복사해요. 카카오톡으로 받은 메시지 전체를 복사해도 돼요!",
           },
           {
             n: 2,
@@ -213,7 +213,7 @@ function GuidePopup({
           {
             n: 4,
             title: "반복하면 응모 티켓이 쌓여요",
-            desc: "에이블리에서 새 링크 만들고 → 올리고 → 받기. 이걸 반복하면 돼요!",
+            desc: "토스에서 새 링크 만들고 → 올리고 → 받기. 이걸 반복하면 돼요!",
           },
         ].map((step) => (
           <div key={step.n} className="flex gap-4 mb-5">
@@ -234,7 +234,7 @@ function GuidePopup({
             "⚡ 동시에 눌러도 딱 1명만 받을 수 있어요",
             "🚫 한 사람 링크는 딱 1번만 받을 수 있어요",
             "⏱️ 5초 안에 안 누르면 자동으로 반납돼요",
-            "🔗 에이블리 링크(a-bly.com)만 올릴 수 있어요",
+            "🔗 토스 링크(a-bly.com)만 올릴 수 있어요",
             "🔄 내 링크를 대기열 맨 앞으로 다시 올릴 수 있어요",
           ].map((item) => (
             <p key={item} className="text-xs text-[#555] leading-relaxed">
@@ -594,7 +594,7 @@ export default function HomePage() {
     setUploadAlert(null);
     const text = linkText.trim();
     if (!text) {
-      setUploadAlert({ message: "에이블리 링크를 입력해주세요.", type: "warning" });
+      setUploadAlert({ message: "토스 링크를 입력해주세요.", type: "warning" });
       return;
     }
 
@@ -849,7 +849,7 @@ export default function HomePage() {
                 isDesktopLayout ? "text-base sm:text-lg" : "text-base"
               }`}
             >
-              에이블리 링크 교환
+              토스 링크 교환
             </h1>
             <div className="flex items-center gap-1.5 sm:gap-2">
               <span
@@ -1031,7 +1031,7 @@ export default function HomePage() {
                 <textarea
                   value={linkText}
                   onChange={(e) => setLinkText(e.target.value)}
-                  placeholder="에이블리 링크를 붙여넣어주세요 (a-bly.com)"
+                  placeholder="토스 링크를 붙여넣어주세요 (a-bly.com)"
                   rows={isDesktopLayout ? 4 : 3}
                   className={`w-full rounded-xl border border-[#e5e7eb] px-3 py-2.5 resize-none outline-none focus:border-[#ff5a5f] transition-colors placeholder:text-gray-300 mb-2 ${
                     isDesktopLayout ? "text-base min-h-[100px]" : "text-sm"
@@ -1132,7 +1132,7 @@ export default function HomePage() {
                       isDesktopLayout ? "text-lg py-3.5" : "text-base py-3"
                     }`}
                   >
-                    에이블리에서 열기 →
+                    토스에서 열기 →
                   </button>
 
                   <button
