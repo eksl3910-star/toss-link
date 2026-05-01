@@ -13,15 +13,15 @@ pnpm dev
 
 ### Pages에 D1 연결 (필수 — 회원가입/DB 오류 방지)
 
-GitHub Actions로 배포해도 **`wrangler.toml`만으로는 Pages 런타임에 D1이 붙지 않습니다.** 대시보드에서 꼭 연결하세요.
+Cloudflare Git 연동으로 배포해도 `**wrangler.toml`만으로는 Pages 런타임에 D1이 붙지 않습니다.** 대시보드에서 꼭 연결하세요.
 
-1. [Cloudflare Dashboard](https://dash.cloudflare.com) → **Workers & Pages** → 프로젝트 **`toss-link`**
+1. [Cloudflare Dashboard](https://dash.cloudflare.com) → **Workers & Pages** → 프로젝트 `**toss-link`**
 2. **Settings** → **Functions** → **D1 database bindings**
 3. **Add binding**
-   - **Variable name**: `DB` ← 코드와 반드시 동일
-   - **D1 database**: `toss-link-db` (또는 사용 중인 DB)
+  - **Variable name**: `DB` ← 코드와 반드시 동일
+  - **D1 database**: `toss-link-db` (또는 사용 중인 DB)
 4. **Production**과 **Preview** 탭(또는 환경) **둘 다** 같은 바인딩이 있는지 확인
-5. 저장 후 **재배포** (빈 커밋 push 또는 Actions 다시 실행)
+5. 저장 후 **재배포** (빈 커밋 push 또는 대시보드에서 Retry deployment)
 
 ### 스키마 / wrangler
 
@@ -43,24 +43,28 @@ npx wrangler d1 execute toss-link-db --remote --file=./migrations/0002_users_nic
 
 ## 환경 변수 (Cloudflare Pages > Settings > Environment Variables)
 
-| 변수 | 설명 |
-|------|------|
-| `ADMIN_BASIC_USER` | **`/admin` 페이지**를 브라우저로 열 때 Basic Auth 아이디 (필수·프로덕션) |
-| `ADMIN_BASIC_PASS` | **`/admin` 페이지** Basic Auth 비밀번호 (필수·프로덕션) |
-| `ADMIN_TOGGLE_PASS` | 관리자 화면 **폼**에서 점검·통계 API에 넣는 비밀번호. 없으면 `ADMIN_BASIC_PASS`로 검증 |
+
+| 변수                  | 설명                                                                                                                                |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `ADMIN_BASIC_USER`  | `**/admin` 페이지**를 브라우저로 열 때 Basic Auth 아이디 (필수·프로덕션)                                                                              |
+| `ADMIN_BASIC_PASS`  | `**/admin` 페이지** Basic Auth 비밀번호 (필수·프로덕션)                                                                                        |
+| `ADMIN_TOGGLE_PASS` | 관리자 화면 **폼**에서 점검·통계 API에 넣는 비밀번호. 없으면 `ADMIN_BASIC_PASS`로 검증                                                                     |
 | `ADMIN_GATE_SECRET` | (선택) Basic 통과 후 발급되는 **게이트 쿠키** 서명용 비밀. 없으면 `ADMIN_TOGGLE_PASS` → `ADMIN_BASIC_PASS` → `ADMIN_BASIC_USER:ADMIN_BASIC_PASS` 순으로 사용 |
 
-- **`/admin` HTML**만 미들웨어에서 Basic Auth를 요구합니다. Next.js가 같은 URL로 RSC 요청을 보낼 때 브라우저가 `Authorization`을 안 붙이는 경우가 있어, **Basic 검증에 성공하면 12시간짜리 httpOnly 쿠키(`als_admin_gate`)를 심고**, 이후 `/admin` 요청은 그 쿠키로 통과시켜 **무한 로그인 창을 막습니다.**
-- **`/api/admin/*`** 에는 Basic을 걸지 않습니다. API는 POST body의 `password`로만 검증합니다.
+
+- `**/admin` HTML**만 미들웨어에서 Basic Auth를 요구합니다. Next.js가 같은 URL로 RSC 요청을 보낼 때 브라우저가 `Authorization`을 안 붙이는 경우가 있어, **Basic 검증에 성공하면 12시간짜리 httpOnly 쿠키(`als_admin_gate`)를 심고**, 이후 `/admin` 요청은 그 쿠키로 통과시켜 **무한 로그인 창을 막습니다.**
+- `**/api/admin/*`** 에는 Basic을 걸지 않습니다. API는 POST body의 `password`로만 검증합니다.
 - 로컬 `next dev`에서는 `ADMIN_BASIC_*` 가 비어 있으면 Basic을 건너뜁니다. 프로덕션(Pages)에서는 둘 다 설정하세요.
 
 ## 배포
 
-GitHub `main` 브랜치에 push하면 GitHub Actions가 자동 배포합니다.
+Cloudflare Pages의 Git 연동으로 `main` 브랜치 push 시 자동 배포합니다.
 
-필요한 GitHub Secrets:
-- `CLOUDFLARE_API_TOKEN`
-- `CLOUDFLARE_ACCOUNT_ID`
+권장 설정(Cloudflare Dashboard → `toss-link` → Settings → Builds & deployments):
+
+- Build command: `pnpm install --frozen-lockfile && pnpm pages:build`
+- Build output directory: `.vercel/output/static`
+- Production branch: `main`
 
 ## 프로젝트 구조
 
@@ -84,3 +88,4 @@ migrations/
   0002_users_nickname.sql  기존 DB용: email 컬럼 → nickname 이름 변경
 middleware.ts         세션·점검 모드 등 (관리자는 페이지 내 비밀번호로 검증)
 ```
+
