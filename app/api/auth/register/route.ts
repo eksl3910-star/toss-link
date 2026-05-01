@@ -38,14 +38,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "비밀번호 확인이 일치하지 않습니다." }, { status: 400 });
   }
 
-  const existing = await findUserByNickname(nickname);
-  if (existing) {
-    return NextResponse.json({ error: "이미 사용 중인 닉네임입니다." }, { status: 409 });
+  try {
+    const existing = await findUserByNickname(nickname);
+    if (existing) {
+      return NextResponse.json({ error: "이미 사용 중인 닉네임입니다." }, { status: 409 });
+    }
+
+    const { hash, salt } = await deriveKey(password);
+    const user = await insertUser(nickname, hash, salt);
+    await issueSession(user.id);
+
+    return NextResponse.json({ ok: true, user: { id: user.id, nickname: user.nickname } });
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "회원가입 처리 중 오류가 발생했습니다.";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-
-  const { hash, salt } = await deriveKey(password);
-  const user = await insertUser(nickname, hash, salt);
-  await issueSession(user.id);
-
-  return NextResponse.json({ ok: true, user: { id: user.id, nickname: user.nickname } });
 }

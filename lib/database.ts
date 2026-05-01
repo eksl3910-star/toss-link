@@ -44,15 +44,36 @@ export type AdminMetrics = {
 type D1Env = { DB?: D1Database };
 
 export function getDb(): D1Database {
-  const fromCtx = (getRequestContext().env as D1Env).DB;
+  let fromCtx: D1Database | undefined;
+  try {
+    fromCtx = (getRequestContext().env as D1Env).DB;
+  } catch {
+    // 로컬 `next dev` 등 Cloudflare 요청 컨텍스트 밖에서는 무시
+  }
   const fromGlobal = (globalThis as { DB?: D1Database }).DB;
   const db = fromCtx ?? fromGlobal;
   if (!db) {
     throw new Error(
-      "D1 binding `DB` is missing. Check [[d1_databases]] in wrangler.toml."
+      "D1 바인딩(DB)을 찾을 수 없습니다. Cloudflare Pages에서 D1 연결 이름이 `DB`인지 확인하세요."
     );
   }
   return db;
+}
+
+/** 기존 DB는 `email`, 신규 스키마는 `nickname` — 둘 다 지원 */
+type UsersLoginCol = "nickname" | "email";
+let cachedUsersLoginCol: UsersLoginCol | undefined;
+
+export async function getUsersLoginColumn(db: D1Database): Promise<UsersLoginCol> {
+  if (cachedUsersLoginCol) return cachedUsersLoginCol;
+  const res = await db.prepare("PRAGMA table_info(users)").all<{ name: string }>();
+  const names = new Set((res.results ?? []).map((r) => r.name));
+  if (names.has("nickname")) cachedUsersLoginCol = "nickname";
+  else if (names.has("email")) cachedUsersLoginCol = "email";
+  else {
+    throw new Error("users 테이블에 nickname 또는 email 컬럼이 없습니다. 마이그레이션을 확인하세요.");
+  }
+  return cachedUsersLoginCol;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -82,13 +103,14 @@ export async function insertUser(
   pwSalt: string
 ): Promise<User> {
   const db = getDb();
+  const col = await getUsersLoginColumn(db);
   const now = Date.now();
   const id = crypto.randomUUID();
   const normalized = normalizeNickname(nickname);
 
   await db
     .prepare(
-      `INSERT INTO users (id, nickname, pw_hash, pw_salt, joined_at)
+      `INSERT INTO users (id, ${col}, pw_hash, pw_salt, joined_at)
        VALUES (?, ?, ?, ?, ?)`
     )
     .bind(id, normalized, pwHash, pwSalt, now)
@@ -102,12 +124,13 @@ export async function findUserByNickname(nickname: string): Promise<
   | null
 > {
   const db = getDb();
+  const col = await getUsersLoginColumn(db);
   const normalized = normalizeNickname(nickname);
   if (!normalized) return null;
   return db
     .prepare(
-      `SELECT id, nickname, pw_hash AS pwHash, pw_salt AS pwSalt, joined_at AS joinedAt
-       FROM users WHERE nickname = ?`
+      `SELECT id, ${col} AS nickname, pw_hash AS pwHash, pw_salt AS pwSalt, joined_at AS joinedAt
+       FROM users WHERE ${col} = ?`
     )
     .bind(normalized)
     .first<User & { pwHash: string; pwSalt: string }>();
@@ -116,10 +139,9 @@ export async function findUserByNickname(nickname: string): Promise<
 export async function findUserById(userId: string): Promise<User | null> {
   const db = getDb();
   if (!userId) return null;
+  const col = await getUsersLoginColumn(db);
   return db
-    .prepare(
-      `SELECT id, nickname, joined_at AS joinedAt FROM users WHERE id = ?`
-    )
+    .prepare(`SELECT id, ${col} AS nickname, joined_at AS joinedAt FROM users WHERE id = ?`)
     .bind(userId)
     .first<User>();
 }

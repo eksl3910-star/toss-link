@@ -20,16 +20,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "닉네임을 입력해주세요." }, { status: 400 });
   }
 
-  const user = await findUserByNickname(nickname);
-  if (!user) {
-    return NextResponse.json({ error: "닉네임 또는 비밀번호가 올바르지 않습니다." }, { status: 401 });
-  }
+  try {
+    const user = await findUserByNickname(nickname);
+    if (!user) {
+      return NextResponse.json({ error: "닉네임 또는 비밀번호가 올바르지 않습니다." }, { status: 401 });
+    }
 
-  const valid = await verifyKey(password, user.pwHash, user.pwSalt);
-  if (!valid) {
-    return NextResponse.json({ error: "닉네임 또는 비밀번호가 올바르지 않습니다." }, { status: 401 });
-  }
+    const valid = await verifyKey(password, user.pwHash, user.pwSalt);
+    if (!valid) {
+      return NextResponse.json({ error: "닉네임 또는 비밀번호가 올바르지 않습니다." }, { status: 401 });
+    }
 
-  await issueSession(user.id);
-  return NextResponse.json({ ok: true, user: { id: user.id, nickname: user.nickname } });
+    await issueSession(user.id);
+    return NextResponse.json({ ok: true, user: { id: user.id, nickname: user.nickname } });
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "로그인 처리 중 오류가 발생했습니다.";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
