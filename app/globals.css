@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+:root {
+  --brand: #ff5a5f;
+  --brand-light: #fff0f0;
+  --brand-dark: #e04448;
+  --text-primary: #1a1a1a;
+  --text-secondary: #6b7280;
+  --border: #e5e7eb;
+  --bg-page: #f5f5f7;
+  --bg-card: #ffffff;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  min-height: 100%;
+}

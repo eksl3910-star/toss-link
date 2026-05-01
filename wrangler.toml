@@ -1,0 +1,8 @@
+﻿name = "ably-link-server"
+pages_build_output_dir = ".vercel/output/static"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ably-link-db"
+database_id = "652de95e-00c3-4d3a-9f21-98487c977bb2"
+
