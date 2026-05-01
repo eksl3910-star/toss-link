@@ -1,2 +1,4 @@
--- Rename login identifier from email to nickname (영/한/숫자 전용은 앱 레벨에서 검증)
-ALTER TABLE users RENAME COLUMN email TO nickname;
+-- 신규 toss-link DB(0001_schema.sql)에는 users.nickname 이 이미 존재합니다.
+-- 기존 레거시 DB에서만 필요했던 email -> nickname rename 이므로
+-- 신규 환경에서 migrations apply가 중단되지 않도록 no-op 처리합니다.
+SELECT 1;
