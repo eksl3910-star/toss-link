@@ -144,7 +144,7 @@ function ContactModal({ onClose }: { onClose: () => void }) {
             rel="noopener noreferrer"
             className="flex h-11 w-full items-center justify-center rounded-xl border border-[#e5e7eb] bg-white text-sm font-semibold text-[#1a1a1a] transition-colors hover:bg-gray-50"
           >
-            제작자 인스타그램 (DM)
+            DM으로 문의하기
           </a>
         </div>
 

@@ -4,13 +4,14 @@
 
 -- Global configuration (single row, key='global')
 CREATE TABLE IF NOT EXISTS settings (
-  key             TEXT    PRIMARY KEY,
-  maintenance_on  INTEGER NOT NULL DEFAULT 0,
-  touched_at      INTEGER NOT NULL
+  key                  TEXT    PRIMARY KEY,
+  maintenance_on       INTEGER NOT NULL DEFAULT 0,
+  touched_at           INTEGER NOT NULL,
+  maintenance_message  TEXT    NOT NULL DEFAULT ''
 );
 
-INSERT OR IGNORE INTO settings (key, maintenance_on, touched_at)
-  VALUES ('global', 0, (unixepoch() * 1000));
+INSERT OR IGNORE INTO settings (key, maintenance_on, touched_at, maintenance_message)
+  VALUES ('global', 0, (unixepoch() * 1000), '');
 
 -- Registered users
 CREATE TABLE IF NOT EXISTS users (
