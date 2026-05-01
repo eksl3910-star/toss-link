@@ -43,6 +43,102 @@ function Alert({ state }: { state: AlertState }) {
 
 const WITHDRAW_CONFIRM_PHRASE = "위 내용을 모두 이해했습니다";
 
+const REQUEUE_COOLDOWN_MS = 3000;
+const CONTACT_KAKAO_URL = "https://open.kakao.com/o/sKsl7Tsi";
+const CONTACT_IG_ORIGINAL = "https://www.instagram.com/solitunnn/";
+const CONTACT_IG_CURRENT = "https://www.instagram.com/riikuuu0/";
+
+// ── Contact / credits popup ───────────────────────────────────────────────────
+
+function ContactModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 als-backdrop-enter"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div
+        className="als-modal-enter w-full max-w-[480px] max-h-[85vh] overflow-y-auto rounded-t-3xl bg-white p-6 pb-9 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-[#1a1a1a]">문의하기 · 제작자</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f5f5f5] text-[#666] transition-all duration-200 hover:bg-[#ebebeb]"
+            aria-label="닫기"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="space-y-4 text-left text-sm text-[#444]">
+          <div className="rounded-xl border border-[#ececec] bg-[#fafafa] px-4 py-3">
+            <p className="text-xs font-semibold text-gray-500">원제작자</p>
+            <a
+              href={CONTACT_IG_ORIGINAL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 block font-semibold text-[#ff5a5f] underline-offset-2 hover:underline"
+            >
+              solitunnn (Instagram)
+            </a>
+          </div>
+
+          <div className="rounded-xl border border-[#ececec] bg-[#fafafa] px-4 py-3">
+            <p className="text-xs font-semibold text-gray-500">제작자</p>
+            <a
+              href={CONTACT_IG_CURRENT}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 block font-semibold text-[#ff5a5f] underline-offset-2 hover:underline"
+            >
+              riikuuu0 (Instagram)
+            </a>
+          </div>
+
+          <div className="rounded-xl border-2 border-[#ff5a5f] bg-[#fff0f0] px-4 py-3 text-[#1a1a1a]">
+            <p className="text-xs font-bold text-[#ff5a5f]">문의 안내</p>
+            <p className="mt-2 leading-relaxed">
+              모든 문의는 <strong>제작자(riikuuu0)</strong>에게만 부탁드려요. 원제작자(solitunnn)에게는 보내지 말아
+              주세요.
+            </p>
+            <p className="mt-2 text-xs text-gray-600 leading-relaxed">
+              문의 방법: 인스타그램 DM 또는 아래 카카오 오픈채팅
+            </p>
+          </div>
+
+          <a
+            href={CONTACT_KAKAO_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex h-12 w-full items-center justify-center rounded-xl bg-[#111] text-base font-bold text-white transition-opacity hover:opacity-90 active:opacity-80"
+          >
+            오픈채팅으로 문의하기
+          </a>
+
+          <a
+            href={CONTACT_IG_CURRENT}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex h-11 w-full items-center justify-center rounded-xl border border-[#e5e7eb] bg-white text-sm font-semibold text-[#1a1a1a] transition-colors hover:bg-gray-50"
+          >
+            제작자 인스타그램 (DM)
+          </a>
+        </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-5 h-10 w-full rounded-xl bg-[#f5f5f5] text-sm text-gray-500 transition-all hover:bg-[#ebebeb]"
+        >
+          닫기
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Guide popup ───────────────────────────────────────────────────────────────
 
 function GuidePopup({
@@ -323,8 +419,11 @@ export default function HomePage() {
   // Guide popup
   const [showGuide, setShowGuide] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [showContact, setShowContact] = useState(false);
+  const [requeueBusy, setRequeueBusy] = useState(false);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const requeueLastAtRef = useRef(0);
 
   // ── Load current user ───────────────────────────────────────────────────────
 
@@ -453,18 +552,38 @@ export default function HomePage() {
   // ── Requeue ─────────────────────────────────────────────────────────────────
 
   async function handleRequeue() {
-    const res = await fetch("/api/links/requeue", { method: "POST" });
-    const data = (await res.json()) as { ok?: boolean; reason?: string };
-
-    if (!res.ok || !data.ok) {
-      const msg =
-        data.reason === "NO_QUEUED_LINK"
-          ? "대기 중인 내 링크가 없어요."
-          : "오류가 발생했습니다.";
-      setUploadAlert({ message: msg, type: "info" });
+    if (requeueBusy) return;
+    const now = Date.now();
+    const elapsed = now - requeueLastAtRef.current;
+    if (elapsed < REQUEUE_COOLDOWN_MS) {
+      const sec = Math.ceil((REQUEUE_COOLDOWN_MS - elapsed) / 1000);
+      setUploadAlert({
+        message: `너무 자주 눌렀어요. ${sec}초 후에 다시 시도해주세요.`,
+        type: "info",
+      });
       return;
     }
-    setUploadAlert({ message: "내 링크가 대기열 맨 앞으로 이동됐어요! 🔄", type: "success" });
+
+    requeueLastAtRef.current = now;
+    setRequeueBusy(true);
+    try {
+      const res = await fetch("/api/links/requeue", { method: "POST" });
+      const { data } = await readResponseJson<{ ok?: boolean; reason?: string; error?: string }>(res);
+
+      if (!data || !res.ok || !data.ok) {
+        const msg =
+          data?.reason === "NO_QUEUED_LINK"
+            ? "대기 중인 내 링크가 없어요."
+            : data?.error ?? "오류가 발생했습니다.";
+        setUploadAlert({ message: msg, type: "info" });
+        return;
+      }
+      setUploadAlert({ message: "내 링크가 대기열 맨 앞으로 이동됐어요! 🔄", type: "success" });
+    } catch {
+      setUploadAlert({ message: "연결에 실패했습니다. 잠시 후 다시 시도해주세요.", type: "error" });
+    } finally {
+      setRequeueBusy(false);
+    }
   }
 
   // ── Receive link ─────────────────────────────────────────────────────────────
@@ -713,10 +832,13 @@ export default function HomePage() {
 
               {showRequeue && (
                 <button
+                  type="button"
                   onClick={() => void handleRequeue()}
-                  className="w-full h-10 rounded-xl border border-[#e5e7eb] text-sm text-gray-500 mt-2 hover:bg-gray-50 active:scale-[0.98] transition-all"
+                  disabled={requeueBusy}
+                  title="같은 동작은 3초에 한 번만 서버로 전송돼요."
+                  className="mt-2 h-10 w-full rounded-xl border border-[#e5e7eb] text-sm text-gray-500 transition-all hover:bg-gray-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  🔄 내 링크 대기열 맨 앞으로 다시 올리기
+                  {requeueBusy ? "처리 중…" : "🔄 내 링크 대기열 맨 앞으로 다시 올리기"}
                 </button>
               )}
 
@@ -773,9 +895,20 @@ export default function HomePage() {
               </div>
             )}
 
+            <div className="pb-4 pt-2 text-center">
+              <button
+                type="button"
+                onClick={() => setShowContact(true)}
+                className="text-xs text-gray-400 underline decoration-gray-300 underline-offset-2 transition-colors hover:text-[#ff5a5f] hover:decoration-[#ff5a5f]"
+              >
+                문의하기
+              </button>
+            </div>
           </div>
         </div>
       </div>
+
+      {showContact ? <ContactModal onClose={() => setShowContact(false)} /> : null}
 
       {showGuide ? (
         <GuidePopup

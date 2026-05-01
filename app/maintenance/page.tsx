@@ -2,7 +2,7 @@ import { getSettings } from "@/lib/database";
 
 export const runtime = "edge";
 
-const KAKAO_OPEN_URL = "https://open.kakao.com/o/sgYUGb8h";
+const KAKAO_OPEN_URL = "https://open.kakao.com/o/sKsl7Tsi";
 
 export default async function MaintenancePage() {
   let extra = "";
