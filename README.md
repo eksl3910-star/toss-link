@@ -44,9 +44,11 @@ npx wrangler d1 execute ably-link-db --remote --file=./migrations/0002_users_nic
 
 | 변수 | 설명 |
 |------|------|
-| `ADMIN_BASIC_USER` | 관리자 페이지 Basic Auth 아이디 |
-| `ADMIN_BASIC_PASS` | 관리자 페이지 Basic Auth 비밀번호 |
-| `ADMIN_TOGGLE_PASS` | 점검 모드 토글용 비밀번호 (없으면 ADMIN_BASIC_PASS 사용) |
+| `ADMIN_TOGGLE_PASS` | **`/admin` 화면에 입력하는 관리자 비밀번호** (점검·통계 API 검증). 최우선으로 사용 |
+| `ADMIN_BASIC_PASS` | `ADMIN_TOGGLE_PASS`가 없을 때 위와 동일 용도로 사용 |
+| `ADMIN_BASIC_USER` | (선택) 예전 Basic Auth용. **현재 미들웨어에서는 사용하지 않음** |
+
+`/admin`은 브라우저 Basic Auth 없이 열립니다. **반드시 긴 `ADMIN_TOGGLE_PASS`를 설정**하고, 화면의 「관리자 비밀번호」에 그 값을 입력하세요. (Basic Auth 이중 인증은 `fetch`가 헤더를 안 붙여 무한 로그인 창이 나는 문제가 있어 제거했습니다.)
 
 ## 배포
 
@@ -76,5 +78,5 @@ lib/
 migrations/
   0001_schema.sql          DB 스키마 (users.nickname)
   0002_users_nickname.sql  기존 DB용: email 컬럼 → nickname 이름 변경
-middleware.ts         인증 체크 + Basic Auth
+middleware.ts         세션·점검 모드 등 (관리자는 페이지 내 비밀번호로 검증)
 ```

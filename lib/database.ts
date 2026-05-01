@@ -424,57 +424,50 @@ export async function acquireLink(takerId: string): Promise<
   const deadline = now + CLAIM_WINDOW_MS;
 
   await purgeExpiredClaims(db, now);
-  await db.exec("BEGIN");
 
-  try {
-    const candidate = await db
-      .prepare(
-        `SELECT l.id, l.url
-         FROM links l
-         WHERE l.state = 'queued'
-           AND l.owner_id != ?
-           AND NOT EXISTS (
-             SELECT 1 FROM receipts r
-             WHERE r.link_id = l.id AND r.taker_id = ?
-           )
-         ORDER BY l.queue_pos ASC
-         LIMIT 1`
-      )
-      .bind(takerId, takerId)
-      .first<{ id: string; url: string }>();
+  // D1 + Edge에서 explicit BEGIN/COMMIT 이 환경에 따라 실패할 수 있어,
+  // 조건부 UPDATE 1회로 원자적으로 점유하고 이어서 receipt 를 넣습니다.
+  const candidate = await db
+    .prepare(
+      `SELECT l.id, l.url
+       FROM links l
+       WHERE l.state = 'queued'
+         AND l.owner_id != ?
+         AND NOT EXISTS (
+           SELECT 1 FROM receipts r
+           WHERE r.link_id = l.id AND r.taker_id = ?
+         )
+       ORDER BY l.queue_pos ASC
+       LIMIT 1`
+    )
+    .bind(takerId, takerId)
+    .first<{ id: string; url: string }>();
 
-    if (!candidate) {
-      await db.exec("COMMIT");
-      return { ok: false, reason: "NO_LINK" };
-    }
-
-    const result = await db
-      .prepare(
-        `UPDATE links
-         SET state = 'claimed', taker_id = ?, claim_deadline = ?, claimed_at = ?, updated_at = ?
-         WHERE id = ? AND state = 'queued'`
-      )
-      .bind(takerId, deadline, now, now, candidate.id)
-      .run();
-
-    if (result.meta.changes !== 1) {
-      await db.exec("ROLLBACK");
-      return { ok: false, reason: "RACE" };
-    }
-
-    await db
-      .prepare(
-        `INSERT OR IGNORE INTO receipts (link_id, taker_id, created_at) VALUES (?, ?, ?)`
-      )
-      .bind(candidate.id, takerId, now)
-      .run();
-
-    await db.exec("COMMIT");
-    return { ok: true, link: { id: candidate.id, url: candidate.url, deadline } };
-  } catch (err) {
-    await db.exec("ROLLBACK");
-    throw err;
+  if (!candidate) {
+    return { ok: false, reason: "NO_LINK" };
   }
+
+  const result = await db
+    .prepare(
+      `UPDATE links
+       SET state = 'claimed', taker_id = ?, claim_deadline = ?, claimed_at = ?, updated_at = ?
+       WHERE id = ? AND state = 'queued'`
+    )
+    .bind(takerId, deadline, now, now, candidate.id)
+    .run();
+
+  if (result.meta.changes !== 1) {
+    return { ok: false, reason: "RACE" };
+  }
+
+  await db
+    .prepare(
+      `INSERT OR IGNORE INTO receipts (link_id, taker_id, created_at) VALUES (?, ?, ?)`
+    )
+    .bind(candidate.id, takerId, now)
+    .run();
+
+  return { ok: true, link: { id: candidate.id, url: candidate.url, deadline } };
 }
 
 export async function confirmLink(

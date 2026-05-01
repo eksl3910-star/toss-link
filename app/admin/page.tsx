@@ -127,6 +127,10 @@ export default function AdminPage() {
       <div className="mx-auto w-full max-w-[560px] rounded-2xl border border-[#e7e9ee] bg-white p-6">
         <h1 className="text-2xl font-extrabold tracking-tight text-[#1f2430]">관리자</h1>
         <p className="mt-2 text-sm text-[#7c8394]">서버 점검 모드와 통계를 관리해요.</p>
+        <p className="mt-1 text-xs text-[#9aa3b2]">
+          아래 비밀번호는 Cloudflare 환경 변수 <code className="text-[#1f2430]">ADMIN_TOGGLE_PASS</code>
+          (없으면 <code className="text-[#1f2430]">ADMIN_BASIC_PASS</code>)와 동일하게 입력하세요. 브라우저 로그인 창이 아닙니다.
+        </p>
 
         {/* Password input */}
         <div className="mt-6 rounded-xl border border-[#e7e9ee] bg-[#fbfbfd] p-4">

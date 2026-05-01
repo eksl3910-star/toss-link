@@ -4,15 +4,6 @@ import { SESSION_COOKIE } from "@/lib/constants";
 
 // ── Path classifiers ──────────────────────────────────────────────────────────
 
-function isAdminRoute(pathname: string): boolean {
-  return (
-    pathname === "/admin" ||
-    pathname.startsWith("/admin/") ||
-    pathname === "/api/admin" ||
-    pathname.startsWith("/api/admin/")
-  );
-}
-
 function isProtectedUserRoute(pathname: string): boolean {
   return (
     pathname === "/" ||
@@ -23,56 +14,17 @@ function isProtectedUserRoute(pathname: string): boolean {
   );
 }
 
-// ── Basic Auth guard for admin routes ─────────────────────────────────────────
-
-function requireBasicAuth(req: NextRequest): NextResponse | null {
-  const user = process.env.ADMIN_BASIC_USER ?? "";
-  const pass = process.env.ADMIN_BASIC_PASS ?? "";
-
-  if (!user || !pass) {
-    return new NextResponse("Forbidden — admin credentials not configured.", {
-      status: 403,
-    });
-  }
-
-  const authHeader = req.headers.get("authorization") ?? "";
-  if (!authHeader.startsWith("Basic ")) {
-    return new NextResponse("Unauthorized", {
-      status: 401,
-      headers: { "WWW-Authenticate": 'Basic realm="Admin Area"' },
-    });
-  }
-
-  try {
-    const decoded = atob(authHeader.slice("Basic ".length));
-    const colon = decoded.indexOf(":");
-    if (colon < 0) throw new Error("malformed");
-    const u = decoded.slice(0, colon);
-    const p = decoded.slice(colon + 1);
-    if (u !== user || p !== pass) throw new Error("wrong creds");
-  } catch {
-    return new NextResponse("Unauthorized", {
-      status: 401,
-      headers: { "WWW-Authenticate": 'Basic realm="Admin Area"' },
-    });
-  }
-
-  return null; // authorized
-}
-
 // ── Middleware ────────────────────────────────────────────────────────────────
+//
+// 참고: /admin·/api/admin/* 에 HTTP Basic Auth 를 걸면, 브라우저가 페이지 로드 후
+// fetch() 로 API 를 호출할 때 Authorization 헤더를 붙이지 않는 경우가 많아
+// 401 + WWW-Authenticate 가 반복되며 "무한 로그인 창"이 뜰 수 있습니다.
+// 관리자 API는 이미 POST body 의 password(ADMIN_TOGGLE_PASS / ADMIN_BASIC_PASS)로 검증합니다.
 
 export async function middleware(req: NextRequest): Promise<NextResponse> {
   const { pathname } = req.nextUrl;
 
-  // 1. Admin routes → HTTP Basic Auth
-  if (isAdminRoute(pathname)) {
-    const denied = requireBasicAuth(req);
-    if (denied) return denied;
-    return NextResponse.next();
-  }
-
-  // 2. Protected user routes → session cookie check
+  // Protected user routes → session cookie check
   if (isProtectedUserRoute(pathname)) {
     const hasSession = Boolean(req.cookies.get(SESSION_COOKIE)?.value);
     if (!hasSession) {

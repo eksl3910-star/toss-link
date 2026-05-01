@@ -12,6 +12,16 @@ type LinkStats = { total: number; mine: number };
 type ClaimedLink = { id: string; url: string; deadline: number };
 type User = { id: string; nickname: string };
 
+async function readResponseJson<T>(res: Response): Promise<{ data: T | null; status: number }> {
+  const raw = await res.text();
+  if (!raw.trim()) return { data: null, status: res.status };
+  try {
+    return { data: JSON.parse(raw) as T, status: res.status };
+  } catch {
+    return { data: null, status: res.status };
+  }
+}
+
 // ── Alert component ───────────────────────────────────────────────────────────
 
 function Alert({ state }: { state: AlertState }) {
@@ -231,7 +241,15 @@ export default function HomePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
       });
-      const data = (await res.json()) as { ok?: boolean; error?: string };
+      const { data } = await readResponseJson<{ ok?: boolean; error?: string }>(res);
+
+      if (!data) {
+        setUploadAlert({
+          message: `서버 응답을 읽을 수 없습니다. (HTTP ${res.status})`,
+          type: "error",
+        });
+        return;
+      }
 
       if (!res.ok || !data.ok) {
         setUploadAlert({ message: data.error ?? "업로드 오류가 발생했습니다.", type: "error" });
@@ -243,7 +261,7 @@ export default function HomePage() {
       setUploadAlert({ message: "링크가 올라갔어요! 🎉", type: "success" });
       loadStats();
     } catch {
-      setUploadAlert({ message: "네트워크 오류가 발생했습니다.", type: "error" });
+      setUploadAlert({ message: "연결에 실패했습니다. 네트워크를 확인해주세요.", type: "error" });
     } finally {
       setUploading(false);
     }
@@ -274,19 +292,37 @@ export default function HomePage() {
 
     try {
       const res = await fetch("/api/links/claim", { method: "POST" });
-      const data = (await res.json()) as {
+      const { data } = await readResponseJson<{
         ok?: boolean;
         reason?: string;
+        error?: string;
         link?: ClaimedLink;
-      };
+      }>(res);
 
-      if (!res.ok || !data.ok) {
+      if (!data) {
+        setReceiveAlert({
+          message: `서버 응답을 읽을 수 없습니다. (HTTP ${res.status})`,
+          type: "error",
+        });
+        return;
+      }
+
+      if (!res.ok) {
+        setReceiveAlert({
+          message: data.error ?? "링크를 받지 못했어요.",
+          type: res.status === 401 ? "warning" : "error",
+        });
+        return;
+      }
+
+      if (!data.ok) {
         const msg =
           data.reason === "NO_LINK"
             ? "지금 받을 수 있는 링크가 없어요."
-            : "링크를 받지 못했어요.";
+            : data.reason === "RACE"
+              ? "다른 사람이 먼저 받았어요. 다시 눌러주세요."
+              : "링크를 받지 못했어요.";
         setReceiveAlert({ message: msg, type: "info" });
-        setReceiving(false);
         return;
       }
 
@@ -294,7 +330,11 @@ export default function HomePage() {
         startCountdown(data.link);
       }
     } catch {
-      setReceiveAlert({ message: "네트워크 오류가 발생했습니다.", type: "error" });
+      setReceiveAlert({
+        message: "연결에 실패했습니다. 네트워크를 확인해주세요.",
+        type: "error",
+      });
+    } finally {
       setReceiving(false);
     }
   }
