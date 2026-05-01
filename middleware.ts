@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getOptionalRequestContext } from "@cloudflare/next-on-pages";
 import { SESSION_COOKIE } from "@/lib/constants";
 import { verifyAdminBasicAuthHeader } from "@/lib/admin-basic-auth";
 import { getMaintenanceOnSafe } from "@/lib/database";
@@ -28,6 +29,16 @@ function isProtectedUserRoute(pathname: string): boolean {
     pathname.startsWith("/api/auth/delete") ||
     pathname.startsWith("/api/auth/me")
   );
+}
+
+function getAdminBasicCredentials(): { user: string; pass: string } {
+  const ctx = getOptionalRequestContext();
+  const env = ctx?.env as Record<string, unknown> | undefined;
+  const envUser = typeof env?.ADMIN_BASIC_USER === "string" ? env.ADMIN_BASIC_USER : "";
+  const envPass = typeof env?.ADMIN_BASIC_PASS === "string" ? env.ADMIN_BASIC_PASS : "";
+  const user = envUser || process.env.ADMIN_BASIC_USER || "";
+  const pass = envPass || process.env.ADMIN_BASIC_PASS || "";
+  return { user, pass };
 }
 
 // ── Middleware ────────────────────────────────────────────────────────────────
@@ -71,8 +82,7 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
   }
 
   if (isAdminPagePath(pathname)) {
-    const basicUser = process.env.ADMIN_BASIC_USER ?? "";
-    const basicPass = process.env.ADMIN_BASIC_PASS ?? "";
+    const { user: basicUser, pass: basicPass } = getAdminBasicCredentials();
     const dev = process.env.NODE_ENV === "development";
     if (!basicUser || !basicPass) {
       if (!dev) {
