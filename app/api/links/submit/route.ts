@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
   if (!url) {
     return NextResponse.json(
-      { error: "토스 링크(toss.im)만 올릴 수 있어요." },
+      { error: "호스트에 toss가 포함된 링크만 올릴 수 있어요." },
       { status: 400 }
     );
   }

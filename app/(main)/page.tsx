@@ -234,7 +234,7 @@ function GuidePopup({
             "⚡ 동시에 눌러도 딱 1명만 받을 수 있어요",
             "🚫 한 사람 링크는 딱 1번만 받을 수 있어요",
             "⏱️ 5초 안에 안 누르면 자동으로 반납돼요",
-            "🔗 토스 링크(toss.im)만 올릴 수 있어요",
+            "🔗 호스트에 toss가 포함된 링크만 올릴 수 있어요",
             "🔄 내 링크를 대기열 맨 앞으로 다시 올릴 수 있어요",
           ].map((item) => (
             <p key={item} className="text-xs text-[#555] leading-relaxed">
@@ -1031,7 +1031,7 @@ export default function HomePage() {
                 <textarea
                   value={linkText}
                   onChange={(e) => setLinkText(e.target.value)}
-                  placeholder="토스 링크를 붙여넣어주세요 (toss.im)"
+                  placeholder="토스 링크를 붙여넣어주세요 (예: toss 포함 주소)"
                   rows={isDesktopLayout ? 4 : 3}
                   className={`w-full rounded-xl border border-[#e5e7eb] px-3 py-2.5 resize-none outline-none focus:border-[#ff5a5f] transition-colors placeholder:text-gray-300 mb-2 ${
                     isDesktopLayout ? "text-base min-h-[100px]" : "text-sm"

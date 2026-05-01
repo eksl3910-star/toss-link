@@ -10,8 +10,8 @@ export const SESSION_TTL_SHORT_MS = 24 * 60 * 60 * 1000;
 // Claim window for a received link: 5 seconds
 export const CLAIM_WINDOW_MS = 5_000;
 
-// Only URLs ending with this hostname are accepted
-export const TOSS_LINK_HOSTNAME = "toss.im";
+// Any host containing this keyword is accepted as toss link
+export const TOSS_LINK_HOST_KEYWORD = "toss";
 
 // PBKDF2 iteration count
 export const PBKDF2_ITERATIONS = 100_000;

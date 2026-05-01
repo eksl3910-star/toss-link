@@ -1,5 +1,5 @@
 import { getRequestContext, getOptionalRequestContext } from "@cloudflare/next-on-pages";
-import { SESSION_TTL_MS, CLAIM_WINDOW_MS, TOSS_LINK_HOSTNAME } from "@/lib/constants";
+import { SESSION_TTL_MS, CLAIM_WINDOW_MS, TOSS_LINK_HOST_KEYWORD } from "@/lib/constants";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -440,7 +440,8 @@ export function parseTossLinkUrl(raw: string): string | null {
   if (!match) return null;
   try {
     const url = new URL(match[0]);
-    if (!url.hostname.toLowerCase().endsWith(TOSS_LINK_HOSTNAME)) return null;
+    const host = url.hostname.toLowerCase();
+    if (!host.includes(TOSS_LINK_HOST_KEYWORD)) return null;
     return url.toString();
   } catch {
     return null;
