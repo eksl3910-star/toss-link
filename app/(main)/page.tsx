@@ -10,7 +10,7 @@ type AlertState = { message: string; type: AlertType } | null;
 
 type LinkStats = { total: number; mine: number };
 type ClaimedLink = { id: string; url: string; deadline: number };
-type User = { id: string; email: string };
+type User = { id: string; nickname: string };
 
 // ── Alert component ───────────────────────────────────────────────────────────
 
@@ -409,7 +409,7 @@ export default function HomePage() {
             <h1 className="text-base font-semibold text-[#1a1a1a]">에이블리 링크 교환</h1>
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-400">
-                {user?.email}
+                {user?.nickname}
               </span>
               <button
                 onClick={() => setShowGuide(true)}

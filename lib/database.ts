@@ -5,7 +5,7 @@ import { SESSION_TTL_MS, CLAIM_WINDOW_MS, ABLY_HOSTNAME } from "@/lib/constants"
 
 export type User = {
   id: string;
-  email: string;
+  nickname: string;
   joinedAt: number;
 };
 
@@ -57,44 +57,57 @@ export function getDb(): D1Database {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-export function normalizeEmail(raw: string): string {
-  return raw.trim().toLowerCase();
+/** 영문 대문자만 소문자로 통일 (한글·숫자는 그대로). */
+export function normalizeNickname(raw: string): string {
+  return raw.trim().replace(/[A-Z]/g, (c) => c.toLowerCase());
+}
+
+/** 특수문자 제외: 영어, 한글(음절·자모), 숫자만 허용. */
+const NICKNAME_CHARS = /^[a-z0-9\uAC00-\uD7A3\u3131-\u318E]+$/;
+
+export function validateNicknameRules(normalized: string): string | null {
+  if (normalized.length < 2) return "닉네임은 2자 이상이어야 합니다.";
+  if (normalized.length > 20) return "닉네임은 20자 이하여야 합니다.";
+  if (!NICKNAME_CHARS.test(normalized)) {
+    return "닉네임은 영어, 한글, 숫자만 사용할 수 있습니다.";
+  }
+  return null;
 }
 
 // ── User ──────────────────────────────────────────────────────────────────────
 
 export async function insertUser(
-  email: string,
+  nickname: string,
   pwHash: string,
   pwSalt: string
 ): Promise<User> {
   const db = getDb();
   const now = Date.now();
   const id = crypto.randomUUID();
-  const normalized = normalizeEmail(email);
+  const normalized = normalizeNickname(nickname);
 
   await db
     .prepare(
-      `INSERT INTO users (id, email, pw_hash, pw_salt, joined_at)
+      `INSERT INTO users (id, nickname, pw_hash, pw_salt, joined_at)
        VALUES (?, ?, ?, ?, ?)`
     )
     .bind(id, normalized, pwHash, pwSalt, now)
     .run();
 
-  return { id, email: normalized, joinedAt: now };
+  return { id, nickname: normalized, joinedAt: now };
 }
 
-export async function findUserByEmail(email: string): Promise<
+export async function findUserByNickname(nickname: string): Promise<
   | (User & { pwHash: string; pwSalt: string })
   | null
 > {
   const db = getDb();
-  const normalized = normalizeEmail(email);
+  const normalized = normalizeNickname(nickname);
   if (!normalized) return null;
   return db
     .prepare(
-      `SELECT id, email, pw_hash AS pwHash, pw_salt AS pwSalt, joined_at AS joinedAt
-       FROM users WHERE email = ?`
+      `SELECT id, nickname, pw_hash AS pwHash, pw_salt AS pwSalt, joined_at AS joinedAt
+       FROM users WHERE nickname = ?`
     )
     .bind(normalized)
     .first<User & { pwHash: string; pwSalt: string }>();
@@ -105,7 +118,7 @@ export async function findUserById(userId: string): Promise<User | null> {
   if (!userId) return null;
   return db
     .prepare(
-      `SELECT id, email, joined_at AS joinedAt FROM users WHERE id = ?`
+      `SELECT id, nickname, joined_at AS joinedAt FROM users WHERE id = ?`
     )
     .bind(userId)
     .first<User>();

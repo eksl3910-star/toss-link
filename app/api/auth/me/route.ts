@@ -8,5 +8,5 @@ export async function GET() {
   if (!user) {
     return NextResponse.json({ ok: false, user: null }, { status: 401 });
   }
-  return NextResponse.json({ ok: true, user: { id: user.id, email: user.email } });
+  return NextResponse.json({ ok: true, user: { id: user.id, nickname: user.nickname } });
 }

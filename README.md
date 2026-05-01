@@ -17,7 +17,14 @@ pnpm dev
 
 ```bash
 npx wrangler d1 execute ably-link-db --local --file=./migrations/0001_schema.sql
+# 기존 DB에 `users.email` 컬럼이 있으면 닉네임 컬럼으로 이름만 변경:
+npx wrangler d1 execute ably-link-db --remote --file=./migrations/0002_users_nickname.sql
 ```
+
+회원가입·로그인은 **이메일이 아니라 닉네임**(영어·한글·숫자, 2~20자)으로 합니다.
+
+- **기존 DB**에 `users.email` 컬럼이 남아 있을 때만 `0002_users_nickname.sql`을 **한 번** 실행하세요.
+- **새로** 현재 버전의 `0001_schema.sql`로 만든 DB는 처음부터 `nickname` 컬럼이라 `0002`는 실행하지 마세요. (`email` 컬럼이 없으면 `ALTER RENAME`이 실패합니다.)
 
 ## 환경 변수 (Cloudflare Pages > Settings > Environment Variables)
 
@@ -53,6 +60,7 @@ lib/
   session.ts          세션 쿠키 관리
   database.ts         D1 쿼리 함수 전체
 migrations/
-  0001_schema.sql     DB 스키마
+  0001_schema.sql          DB 스키마 (users.nickname)
+  0002_users_nickname.sql  기존 DB용: email 컬럼 → nickname 이름 변경
 middleware.ts         인증 체크 + Basic Auth
 ```

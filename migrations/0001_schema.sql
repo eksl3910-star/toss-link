@@ -15,7 +15,7 @@ INSERT OR IGNORE INTO settings (key, maintenance_on, touched_at)
 -- Registered users
 CREATE TABLE IF NOT EXISTS users (
   id        TEXT    PRIMARY KEY,
-  email     TEXT    NOT NULL UNIQUE,
+  nickname  TEXT    NOT NULL UNIQUE,
   pw_hash   TEXT    NOT NULL,
   pw_salt   TEXT    NOT NULL,
   joined_at INTEGER NOT NULL
