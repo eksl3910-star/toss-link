@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { setMaintenance } from "@/lib/database";
+import { getSettings, setMaintenance, updateMaintenanceMessage } from "@/lib/database";
 import { timingSafeCompare } from "@/lib/password";
 import { ADMIN_PASS_ENVS } from "@/lib/constants";
 
@@ -14,7 +14,7 @@ function checkAdminPassword(input: string): boolean {
 }
 
 export async function POST(req: Request) {
-  let body: { password?: unknown; on?: unknown } = {};
+  let body: { password?: unknown; on?: unknown; maintenanceMessage?: unknown } = {};
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -26,10 +26,28 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "관리자 비밀번호가 올바르지 않습니다." }, { status: 401 });
   }
 
-  if (typeof body.on !== "boolean") {
-    return NextResponse.json({ error: "on 값(boolean)이 필요합니다." }, { status: 400 });
+  const hasOn = typeof body.on === "boolean";
+  const hasMsg = typeof body.maintenanceMessage === "string";
+
+  if (!hasOn && !hasMsg) {
+    return NextResponse.json(
+      { error: "점검 전환(on) 또는 maintenanceMessage(문자열) 중 하나 이상이 필요합니다." },
+      { status: 400 }
+    );
   }
 
-  const result = await setMaintenance(body.on);
-  return NextResponse.json({ ok: true, maintenanceOn: result.maintenanceOn, touchedAt: result.touchedAt });
+  if (hasOn) {
+    await setMaintenance(body.on as boolean);
+  }
+  if (hasMsg) {
+    await updateMaintenanceMessage(body.maintenanceMessage as string);
+  }
+
+  const s = await getSettings();
+  return NextResponse.json({
+    ok: true,
+    maintenanceOn: s.maintenanceOn,
+    touchedAt: s.touchedAt,
+    maintenanceMessage: s.maintenanceMessage,
+  });
 }

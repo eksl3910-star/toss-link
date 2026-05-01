@@ -237,21 +237,27 @@ export async function destroySession(sessionId: string): Promise<void> {
 
 // ── Settings / Maintenance ────────────────────────────────────────────────────
 
+const MAX_MAINTENANCE_MESSAGE_LEN = 2000;
+
 export async function getSettings(): Promise<{
   maintenanceOn: boolean;
   touchedAt: number;
+  maintenanceMessage: string;
 }> {
   const db = getDb();
   const row = await db
     .prepare(
-      `SELECT maintenance_on AS maintenanceOn, touched_at AS touchedAt
+      `SELECT maintenance_on AS maintenanceOn,
+              touched_at AS touchedAt,
+              IFNULL(maintenance_message, '') AS maintenanceMessage
        FROM settings WHERE key = 'global'`
     )
-    .first<{ maintenanceOn: number; touchedAt: number }>();
+    .first<{ maintenanceOn: number; touchedAt: number; maintenanceMessage: string }>();
 
   return {
     maintenanceOn: Boolean(row?.maintenanceOn ?? 0),
     touchedAt: row?.touchedAt ?? 0,
+    maintenanceMessage: row?.maintenanceMessage ?? "",
   };
 }
 
@@ -284,6 +290,24 @@ export async function setMaintenance(
     .bind(on ? 1 : 0, now)
     .run();
   return { maintenanceOn: on, touchedAt: now };
+}
+
+export function clampMaintenanceMessage(raw: string): string {
+  const t = raw.replace(/\u0000/g, "").trimEnd();
+  if (t.length <= MAX_MAINTENANCE_MESSAGE_LEN) return t;
+  return t.slice(0, MAX_MAINTENANCE_MESSAGE_LEN);
+}
+
+export async function updateMaintenanceMessage(message: string): Promise<void> {
+  const db = getDb();
+  const now = Date.now();
+  const text = clampMaintenanceMessage(message);
+  await db
+    .prepare(
+      `UPDATE settings SET maintenance_message = ?, touched_at = ? WHERE key = 'global'`
+    )
+    .bind(text, now)
+    .run();
 }
 
 // ── Link helpers ──────────────────────────────────────────────────────────────

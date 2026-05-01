@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-type Settings = { maintenanceOn: boolean; touchedAt: number };
+type Settings = { maintenanceOn: boolean; touchedAt: number; maintenanceMessage: string };
 type Metrics = {
   totalUsers: number;
   newUsersToday: number;
@@ -33,6 +33,7 @@ export default function AdminPage() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [password, setPassword] = useState("");
+  const [maintenanceMsg, setMaintenanceMsg] = useState("");
   const [alert, setAlert] = useState<AlertState>(null);
 
   // Load current settings
@@ -43,7 +44,9 @@ export default function AdminPage() {
         setSettings({
           maintenanceOn: Boolean(d.maintenanceOn),
           touchedAt: d.touchedAt ?? 0,
+          maintenanceMessage: typeof d.maintenanceMessage === "string" ? d.maintenanceMessage : "",
         });
+        if (typeof d.maintenanceMessage === "string") setMaintenanceMsg(d.maintenanceMessage);
       })
       .catch(() =>
         setAlert({ message: "설정을 불러오지 못했습니다.", type: "error" })
@@ -65,13 +68,18 @@ export default function AdminPage() {
       const res = await fetch("/api/admin/maintenance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password, on: next }),
+        body: JSON.stringify({
+          password,
+          on: next,
+          ...(next ? { maintenanceMessage: maintenanceMsg } : {}),
+        }),
       });
       const data = (await res.json()) as {
         ok?: boolean;
         error?: string;
         maintenanceOn?: boolean;
         touchedAt?: number;
+        maintenanceMessage?: string;
       };
 
       if (!res.ok || !data.ok) {
@@ -79,11 +87,62 @@ export default function AdminPage() {
         return;
       }
 
-      setSettings({ maintenanceOn: Boolean(data.maintenanceOn), touchedAt: data.touchedAt ?? 0 });
+      setSettings({
+        maintenanceOn: Boolean(data.maintenanceOn),
+        touchedAt: data.touchedAt ?? 0,
+        maintenanceMessage:
+          typeof data.maintenanceMessage === "string" ? data.maintenanceMessage : maintenanceMsg,
+      });
+      if (typeof data.maintenanceMessage === "string") setMaintenanceMsg(data.maintenanceMessage);
       setAlert({
         message: next ? "점검 모드가 활성화됐습니다." : "점검 모드가 해제됐습니다.",
         type: "success",
       });
+    } catch {
+      setAlert({ message: "네트워크 오류가 발생했습니다.", type: "error" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveMaintenanceMessageOnly() {
+    if (busy) return;
+    setAlert(null);
+    if (!password) {
+      setAlert({ message: "관리자 비밀번호를 입력해주세요.", type: "error" });
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await fetch("/api/admin/maintenance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password, maintenanceMessage: maintenanceMsg }),
+      });
+      const data = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        maintenanceOn?: boolean;
+        touchedAt?: number;
+        maintenanceMessage?: string;
+      };
+      if (!res.ok || !data.ok) {
+        setAlert({ message: data.error ?? "저장 실패", type: "error" });
+        return;
+      }
+      setSettings((prev) =>
+        prev
+          ? {
+              ...prev,
+              maintenanceOn: Boolean(data.maintenanceOn),
+              touchedAt: data.touchedAt ?? prev.touchedAt,
+              maintenanceMessage:
+                typeof data.maintenanceMessage === "string" ? data.maintenanceMessage : maintenanceMsg,
+            }
+          : prev
+      );
+      if (typeof data.maintenanceMessage === "string") setMaintenanceMsg(data.maintenanceMessage);
+      setAlert({ message: "점검 안내 문구를 저장했습니다.", type: "success" });
     } catch {
       setAlert({ message: "네트워크 오류가 발생했습니다.", type: "error" });
     } finally {
@@ -186,6 +245,30 @@ export default function AdminPage() {
               점검 해제
             </button>
           </div>
+        </div>
+
+        <div className="mt-4 rounded-xl border border-[#e7e9ee] bg-[#fbfbfd] p-4">
+          <p className="text-sm font-semibold text-[#1f2430]">점검 화면 추가 안내</p>
+          <p className="mt-1 text-xs text-[#7c8394]">
+            점검 페이지에서 「다음에 다시…」 아래, 카카오 버튼 위에 박스로 보입니다. 비워 두면 표시하지 않아요. (최대
+            2000자)
+          </p>
+          <textarea
+            value={maintenanceMsg}
+            onChange={(e) => setMaintenanceMsg(e.target.value)}
+            maxLength={2000}
+            rows={5}
+            placeholder="예: 오늘 18시까지 점검 예정입니다. 긴급 문의는 카카오톡으로 주세요."
+            className="mt-3 w-full resize-y rounded-xl border border-[#d9dde6] bg-white px-3 py-2.5 text-sm text-[#1f2430] outline-none placeholder:text-[#9aa3b2] focus:border-[#111]"
+          />
+          <button
+            type="button"
+            disabled={loading || busy}
+            onClick={() => void saveMaintenanceMessageOnly()}
+            className="mt-3 h-10 w-full rounded-xl border border-[#e7e9ee] bg-white text-sm font-bold text-[#1f2430] disabled:opacity-50"
+          >
+            안내 문구만 저장
+          </button>
         </div>
 
         {/* Stats section */}

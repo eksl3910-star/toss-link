@@ -39,6 +39,7 @@ npx wrangler d1 execute ably-link-db --remote --file=./migrations/0002_users_nic
 
 - **기존 DB**에 `users.email` 컬럼이 남아 있을 때만 `0002_users_nickname.sql`을 **한 번** 실행하세요.
 - **새로** 현재 버전의 `0001_schema.sql`로 만든 DB는 처음부터 `nickname` 컬럼이라 `0002`는 실행하지 마세요. (`email` 컬럼이 없으면 `ALTER RENAME`이 실패합니다.)
+- 점검 화면 **추가 안내 문구**를 쓰려면 `0003_settings_maintenance_message.sql`을 **한 번** 실행하세요. (`settings.maintenance_message` 컬럼 추가)
 
 ## 환경 변수 (Cloudflare Pages > Settings > Environment Variables)
 

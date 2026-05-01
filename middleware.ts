@@ -32,14 +32,16 @@ function isProtectedUserRoute(pathname: string): boolean {
   );
 }
 
-function getAdminBasicCredentials(): { user: string; pass: string } {
+function getAdminBasicCredentials(): { user: string; pass: string; passAlt: string } {
   const ctx = getOptionalRequestContext();
   const env = ctx?.env as Record<string, unknown> | undefined;
   const envUser = typeof env?.ADMIN_BASIC_USER === "string" ? env.ADMIN_BASIC_USER : "";
   const envPass = typeof env?.ADMIN_BASIC_PASS === "string" ? env.ADMIN_BASIC_PASS : "";
-  const user = envUser || process.env.ADMIN_BASIC_USER || "";
-  const pass = envPass || process.env.ADMIN_BASIC_PASS || "";
-  return { user, pass };
+  const envToggle = typeof env?.ADMIN_TOGGLE_PASS === "string" ? env.ADMIN_TOGGLE_PASS : "";
+  const user = (envUser || process.env.ADMIN_BASIC_USER || "admin").trim();
+  const pass = (envPass || process.env.ADMIN_BASIC_PASS || "").trim();
+  const passAlt = (envToggle || process.env.ADMIN_TOGGLE_PASS || "").trim();
+  return { user, pass, passAlt };
 }
 
 function getAdminGateSecret(env: Record<string, unknown> | undefined, basicUser: string, basicPass: string): string {
@@ -51,6 +53,17 @@ function getAdminGateSecret(env: Record<string, unknown> | undefined, basicUser:
     from("ADMIN_BASIC_PASS").trim() ||
     `${basicUser.trim()}:${basicPass.trim()}`
   );
+}
+
+function verifyAdminBasicAny(
+  authorization: string | null,
+  user: string,
+  pass: string,
+  passAlt: string
+): boolean {
+  if (pass && verifyAdminBasicAuthHeader(authorization, user, pass)) return true;
+  if (passAlt && verifyAdminBasicAuthHeader(authorization, user, passAlt)) return true;
+  return false;
 }
 
 // ── Middleware ────────────────────────────────────────────────────────────────
@@ -94,23 +107,23 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
   }
 
   if (isAdminPagePath(pathname)) {
-    const { user: basicUser, pass: basicPass } = getAdminBasicCredentials();
+    const { user: basicUser, pass: basicPass, passAlt } = getAdminBasicCredentials();
     const dev = process.env.NODE_ENV === "development";
-    if (!basicUser || !basicPass) {
+    if (!basicPass && !passAlt) {
       if (!dev) {
         return new NextResponse(
-          "ADMIN_BASIC_USER / ADMIN_BASIC_PASS 가 설정되지 않았습니다. Cloudflare 환경 변수를 확인하세요.",
+          "ADMIN_BASIC_PASS 또는 ADMIN_TOGGLE_PASS 가 설정되지 않았습니다. Cloudflare 환경 변수를 확인하세요.",
           { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } }
         );
       }
       /* 로컬(next dev)에서 env 미설정 시 Basic 생략 — 프로덕션에서는 반드시 설정 */
     } else {
       const ctxEnv = getOptionalRequestContext()?.env as Record<string, unknown> | undefined;
-      const gateSecret = getAdminGateSecret(ctxEnv, basicUser, basicPass);
+      const gateSecret = getAdminGateSecret(ctxEnv, basicUser, basicPass || passAlt);
       const gate = req.cookies.get(ADMIN_GATE_COOKIE)?.value;
       const gateOk = await verifyAdminGateCookie(gate, gateSecret);
       if (!gateOk) {
-        if (verifyAdminBasicAuthHeader(req.headers.get("authorization"), basicUser, basicPass)) {
+        if (verifyAdminBasicAny(req.headers.get("authorization"), basicUser, basicPass, passAlt)) {
           const res = NextResponse.next();
           res.cookies.set(ADMIN_GATE_COOKIE, await createAdminGateCookie(gateSecret), {
             httpOnly: true,
