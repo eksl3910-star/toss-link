@@ -11,7 +11,7 @@ export const SESSION_TTL_SHORT_MS = 24 * 60 * 60 * 1000;
 export const CLAIM_WINDOW_MS = 5_000;
 
 // Only URLs ending with this hostname are accepted
-export const TOSS_LINK_HOSTNAME = "a-bly.com";
+export const TOSS_LINK_HOSTNAME = "toss.im";
 
 // PBKDF2 iteration count
 export const PBKDF2_ITERATIONS = 100_000;

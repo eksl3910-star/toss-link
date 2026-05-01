@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
   if (!url) {
     return NextResponse.json(
-      { error: "토스 링크(a-bly.com)만 올릴 수 있어요." },
+      { error: "토스 링크(toss.im)만 올릴 수 있어요." },
       { status: 400 }
     );
   }
