@@ -12,64 +12,99 @@ export default function RootLayout({
   const antiInspectScript = `
     (() => {
       const REDIRECT_URL = "https://www.naver.com";
+      const VIEWPORT_THRESHOLD = 150;
+      const RECHECK_MS = 700;
+      const REDIRECT_RETRY_MS = 900;
       const REDIRECT_COOLDOWN_MS = 3000;
+      let isLocked = false;
       let lastRedirectAt = 0;
-      let overlayShown = false;
 
-      const ensureOverlay = () => {
-        if (overlayShown) return;
-        overlayShown = true;
-        document.documentElement.style.overflow = "hidden";
-        document.body.style.filter = "blur(6px)";
-        const overlay = document.createElement("div");
-        overlay.id = "als-devtools-overlay";
-        overlay.style.position = "fixed";
-        overlay.style.inset = "0";
-        overlay.style.zIndex = "2147483647";
-        overlay.style.background = "rgba(0,0,0,0.72)";
-        overlay.style.color = "#fff";
-        overlay.style.display = "flex";
-        overlay.style.alignItems = "center";
-        overlay.style.justifyContent = "center";
-        overlay.style.textAlign = "center";
-        overlay.style.padding = "24px";
-        overlay.style.fontSize = "16px";
-        overlay.style.lineHeight = "1.5";
-        overlay.textContent = "보안 정책에 의해 페이지를 종료합니다.";
-        document.body.appendChild(overlay);
+      const blockBasicActions = () => {
+        const prevent = (e) => e.preventDefault();
+        document.addEventListener("contextmenu", prevent);
+        document.addEventListener("dragstart", prevent);
+        document.addEventListener("selectstart", prevent);
       };
 
-      const handleDetect = () => {
-        ensureOverlay();
+      const tryRedirect = () => {
         const now = Date.now();
         if (now - lastRedirectAt < REDIRECT_COOLDOWN_MS) return;
         lastRedirectAt = now;
-        location.replace(REDIRECT_URL);
+        window.location.replace(REDIRECT_URL);
       };
 
-      document.addEventListener("contextmenu", (e) => e.preventDefault());
-      document.addEventListener("dragstart", (e) => e.preventDefault());
-      document.addEventListener("selectstart", (e) => e.preventDefault());
-      document.addEventListener("keydown", (e) => {
-        const key = e.key.toLowerCase();
-        const blocked =
-          key === "f12" ||
-          ((e.ctrlKey || e.metaKey) && e.shiftKey && (key === "i" || key === "j" || key === "c")) ||
-          ((e.ctrlKey || e.metaKey) && key === "u");
-        if (blocked) {
-          e.preventDefault();
-          handleDetect();
-        }
+      const hardBlock = () => {
+        isLocked = true;
+        document.documentElement.classList.add("als-devtools-open");
+        try {
+          if (document.body) {
+            document.body.innerHTML = "";
+            document.body.style.display = "none";
+          }
+        } catch (_) {}
+        tryRedirect();
+      };
+
+      const triggerLock = () => {
+        if (!isLocked) hardBlock();
+      };
+
+      const detectViewportGap = () => {
+        const wGap = Math.abs(window.outerWidth - window.innerWidth);
+        const hGap = Math.abs(window.outerHeight - window.innerHeight);
+        return wGap > VIEWPORT_THRESHOLD || hGap > VIEWPORT_THRESHOLD;
+      };
+
+      const detectDevtools = () => {
+        if (detectViewportGap()) triggerLock();
+      };
+
+      const trapTarget = {};
+      Object.defineProperty(trapTarget, "devtools", {
+        get() {
+          triggerLock();
+          return "blocked";
+        },
       });
 
-      const threshold = 160;
+      const runConsoleTrap = () => {
+        try {
+          console.dir(trapTarget);
+        } catch (_) {}
+      };
+
+      document.addEventListener(
+        "keydown",
+        (e) => {
+          const key = (e.key || "").toLowerCase();
+          const blocked =
+            key === "f12" ||
+            (e.ctrlKey && e.shiftKey && ["i", "j", "c", "k"].includes(key)) ||
+            (e.ctrlKey && ["u", "s", "p"].includes(key));
+          if (blocked || isLocked) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+          }
+          if (blocked) triggerLock();
+        },
+        true
+      );
+
+      blockBasicActions();
+      window.addEventListener("resize", detectDevtools, { passive: true });
+      window.addEventListener("focus", detectDevtools, { passive: true });
       setInterval(() => {
-        const widthGap = window.outerWidth - window.innerWidth;
-        const heightGap = window.outerHeight - window.innerHeight;
-        if (widthGap > threshold || heightGap > threshold) {
-          handleDetect();
+        detectDevtools();
+        runConsoleTrap();
+      }, RECHECK_MS);
+      setInterval(() => {
+        if (isLocked && window.location.href !== REDIRECT_URL) {
+          tryRedirect();
         }
-      }, 1200);
+      }, REDIRECT_RETRY_MS);
+      detectDevtools();
+      runConsoleTrap();
     })();
   `;
 
@@ -87,7 +122,12 @@ export default function RootLayout({
         style={{ fontFamily: "'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}
       >
         <script dangerouslySetInnerHTML={{ __html: antiInspectScript }} />
-        <span style={{ display: "none" }}>Created by Daniel (eksl3910)</span>
+        <span
+          aria-hidden="true"
+          className="pointer-events-none fixed -left-[9999px] -top-[9999px] opacity-0 select-none"
+        >
+          Created by Daniel (eksl3910)
+        </span>
         {children}
       </body>
     </html>
