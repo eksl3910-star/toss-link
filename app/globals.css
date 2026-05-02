@@ -62,3 +62,25 @@ html,
 body {
   min-height: 100%;
 }
+
+/* DevTools shortcut lock: blur page while shield is shown (script adds html.als-devtools-open + #als-devtools-shield) */
+html.als-devtools-open body {
+  filter: blur(6px);
+  pointer-events: none;
+}
+
+#als-devtools-shield {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.72);
+  pointer-events: none;
+}

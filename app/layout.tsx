@@ -35,6 +35,15 @@ export default function RootLayout({
         isLocked = true;
         document.documentElement.classList.add("als-devtools-open");
         try {
+          if (!document.getElementById("als-devtools-shield")) {
+            const shield = document.createElement("div");
+            shield.id = "als-devtools-shield";
+            shield.setAttribute("role", "presentation");
+            shield.textContent = "보안 정책에 의해 페이지를 종료합니다.";
+            document.documentElement.appendChild(shield);
+          }
+        } catch (_) {}
+        try {
           if (document.body) {
             document.body.innerHTML = "";
             document.body.style.display = "none";
@@ -47,14 +56,31 @@ export default function RootLayout({
         if (!isLocked) hardBlock();
       };
 
+      const isBlockedDevToolsShortcut = (e) => {
+        const key = (e.key || "").toLowerCase();
+        const code = e.code || "";
+        const winLinux =
+          key === "f12" ||
+          code === "F12" ||
+          (e.ctrlKey &&
+            e.shiftKey &&
+            (["i", "j", "c", "k"].includes(key) ||
+              ["KeyI", "KeyJ", "KeyC", "KeyK"].includes(code))) ||
+          (e.ctrlKey &&
+            (["u", "s", "p"].includes(key) ||
+              ["KeyU", "KeyS", "KeyP"].includes(code)));
+        const mac =
+          e.metaKey &&
+          e.altKey &&
+          (["i", "j", "c", "u"].includes(key) ||
+            ["KeyI", "KeyJ", "KeyC", "KeyU"].includes(code));
+        return winLinux || mac;
+      };
+
       document.addEventListener(
         "keydown",
         (e) => {
-          const key = (e.key || "").toLowerCase();
-          const blocked =
-            key === "f12" ||
-            (e.ctrlKey && e.shiftKey && ["i", "j", "c", "k"].includes(key)) ||
-            (e.ctrlKey && ["u", "s", "p"].includes(key));
+          const blocked = isBlockedDevToolsShortcut(e);
           if (blocked || isLocked) {
             e.preventDefault();
             e.stopPropagation();
