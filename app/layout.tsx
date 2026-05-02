@@ -12,8 +12,6 @@ export default function RootLayout({
   const antiInspectScript = `
     (() => {
       const REDIRECT_URL = "https://www.naver.com";
-      const VIEWPORT_THRESHOLD = 150;
-      const RECHECK_MS = 700;
       const REDIRECT_RETRY_MS = 900;
       const REDIRECT_COOLDOWN_MS = 3000;
       let isLocked = false;
@@ -49,30 +47,6 @@ export default function RootLayout({
         if (!isLocked) hardBlock();
       };
 
-      const detectViewportGap = () => {
-        const wGap = Math.abs(window.outerWidth - window.innerWidth);
-        const hGap = Math.abs(window.outerHeight - window.innerHeight);
-        return wGap > VIEWPORT_THRESHOLD || hGap > VIEWPORT_THRESHOLD;
-      };
-
-      const detectDevtools = () => {
-        if (detectViewportGap()) triggerLock();
-      };
-
-      const trapTarget = {};
-      Object.defineProperty(trapTarget, "devtools", {
-        get() {
-          triggerLock();
-          return "blocked";
-        },
-      });
-
-      const runConsoleTrap = () => {
-        try {
-          console.dir(trapTarget);
-        } catch (_) {}
-      };
-
       document.addEventListener(
         "keydown",
         (e) => {
@@ -92,19 +66,11 @@ export default function RootLayout({
       );
 
       blockBasicActions();
-      window.addEventListener("resize", detectDevtools, { passive: true });
-      window.addEventListener("focus", detectDevtools, { passive: true });
-      setInterval(() => {
-        detectDevtools();
-        runConsoleTrap();
-      }, RECHECK_MS);
       setInterval(() => {
         if (isLocked && window.location.href !== REDIRECT_URL) {
           tryRedirect();
         }
       }, REDIRECT_RETRY_MS);
-      detectDevtools();
-      runConsoleTrap();
     })();
   `;
 
