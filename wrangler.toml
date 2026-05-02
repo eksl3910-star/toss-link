@@ -5,4 +5,3 @@ pages_build_output_dir = ".vercel/output/static"
 binding = "DB"
 database_name = "toss-link-db"
 database_id = "d5f7e386-168f-4ce3-a2d1-8973a79f8f7f"
-

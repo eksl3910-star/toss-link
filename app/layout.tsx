@@ -77,9 +77,9 @@ export default function RootLayout({
           if (shiftPanelKeys.includes(key) || shiftPanelCodes.includes(code)) return true;
         }
 
-        // Win/Linux: Ctrl+` — 일부 환경에서 콘솔/도킹과 연동되는 경우가 있어 차단
+        // Win/Linux: Ctrl+Backquote (백틱) - 콘솔/도킹과 연동되는 경우가 있어 차단
         if (e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
-          if (code === "Backquote" || key === "`") return true;
+          if (code === "Backquote" || key === "\u0060") return true;
           if (
             ["u", "s", "p"].includes(key) ||
             ["KeyU", "KeyS", "KeyP"].includes(code)
