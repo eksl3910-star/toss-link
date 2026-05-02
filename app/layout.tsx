@@ -59,37 +59,65 @@ export default function RootLayout({
       const isBlockedDevToolsShortcut = (e) => {
         const key = (e.key || "").toLowerCase();
         const code = e.code || "";
-        const winLinux =
-          key === "f12" ||
-          code === "F12" ||
-          (e.ctrlKey &&
-            e.shiftKey &&
-            (["i", "j", "c", "k"].includes(key) ||
-              ["KeyI", "KeyJ", "KeyC", "KeyK"].includes(code))) ||
-          (e.ctrlKey &&
-            (["u", "s", "p"].includes(key) ||
-              ["KeyU", "KeyS", "KeyP"].includes(code)));
-        const mac =
-          e.metaKey &&
-          e.altKey &&
-          (["i", "j", "c", "u"].includes(key) ||
-            ["KeyI", "KeyJ", "KeyC", "KeyU"].includes(code));
-        return winLinux || mac;
+
+        if (key === "f12" || code === "F12") return true;
+
+        // Win/Linux: Ctrl+Shift+* — DevTools / 패널 (Chrome·Edge·Firefox 공통에 가까운 조합)
+        if (e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey) {
+          const shiftPanelKeys = ["i", "j", "c", "k", "e", "m", "p"];
+          const shiftPanelCodes = [
+            "KeyI",
+            "KeyJ",
+            "KeyC",
+            "KeyK",
+            "KeyE",
+            "KeyM",
+            "KeyP",
+          ];
+          if (shiftPanelKeys.includes(key) || shiftPanelCodes.includes(code)) return true;
+        }
+
+        // Win/Linux: Ctrl+` — 일부 환경에서 콘솔/도킹과 연동되는 경우가 있어 차단
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey) {
+          if (code === "Backquote" || key === "`") return true;
+          if (
+            ["u", "s", "p"].includes(key) ||
+            ["KeyU", "KeyS", "KeyP"].includes(code)
+          )
+            return true;
+        }
+
+        // Mac: Cmd+Option+* (Safari/Chrome 계열)
+        if (e.metaKey && e.altKey && !e.ctrlKey) {
+          const macKeys = ["i", "j", "c", "u", "e", "k", "m"];
+          const macCodes = [
+            "KeyI",
+            "KeyJ",
+            "KeyC",
+            "KeyU",
+            "KeyE",
+            "KeyK",
+            "KeyM",
+          ];
+          if (macKeys.includes(key) || macCodes.includes(code)) return true;
+        }
+
+        return false;
       };
 
-      document.addEventListener(
-        "keydown",
-        (e) => {
-          const blocked = isBlockedDevToolsShortcut(e);
-          if (blocked || isLocked) {
-            e.preventDefault();
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-          }
-          if (blocked) triggerLock();
-        },
-        true
-      );
+      const keyListenerOpts = { capture: true, passive: false };
+      const onKeyEvent = (e) => {
+        const blocked = isBlockedDevToolsShortcut(e);
+        if (blocked || isLocked) {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+        }
+        if (blocked) triggerLock();
+      };
+
+      window.addEventListener("keydown", onKeyEvent, keyListenerOpts);
+      window.addEventListener("keyup", onKeyEvent, keyListenerOpts);
 
       blockBasicActions();
       setInterval(() => {
